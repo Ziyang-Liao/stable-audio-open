@@ -49,8 +49,8 @@ class TransformerBlock(torch.nn.Module):
         super().__init__()
         self.layer = layer
     
-    def forward(self, x, t_emb, cond, cond_emb, global_emb):
-        return self.layer(x, t_emb, cond=cond, cond_embed=cond_emb, global_embed=global_emb)
+    def forward(self, x, context, global_cond):
+        return self.layer(x, context=context, global_cond=global_cond)
 
 class PostprocessConv(torch.nn.Module):
     """后处理卷积"""
@@ -104,14 +104,12 @@ def compile_model(output_dir):
         block = TransformerBlock(layer).eval()
         
         x = torch.randn(1, SEQ_LEN, hidden_dim)
-        t_emb = torch.randn(1, hidden_dim)
-        cond = torch.randn(1, 512, cond_dim)  # cross attention
-        cond_emb = torch.randn(1, hidden_dim)
-        global_emb = torch.randn(1, hidden_dim)
+        context = torch.randn(1, 512, cond_dim)  # cross attention context
+        global_cond = torch.randn(1, hidden_dim)
         
         try:
             traced = torch_neuronx.trace(
-                block, (x, t_emb, cond, cond_emb, global_emb),
+                block, (x, context, global_cond),
                 compiler_args=["--model-type=transformer", "--auto-cast=all", "--auto-cast-type=bf16"]
             )
             traced.save(f"{output_dir}/layer_{i}.pt")
