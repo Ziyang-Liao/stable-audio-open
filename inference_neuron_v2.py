@@ -39,14 +39,10 @@ class StableAudioNeuron:
     
     def denoise(self, x, sigma, cond_embed, cross_attn):
         """单步去噪 - 使用 Neuron 模型"""
-        # sigma -> timestep embedding
         t = sigma.view(1)
         t_emb = self.ts_embed(t)
-        
-        # 全局条件
         global_cond = cond_embed + t_emb
         
-        # DiT forward
         h = self.pre_conv(x)
         h = h.transpose(1, 2)
         h = self.proj_in(h)
@@ -56,9 +52,29 @@ class StableAudioNeuron:
         
         h = self.proj_out(h)
         h = h.transpose(1, 2)
-        out = self.post_conv(h)
+        return self.post_conv(h)
+    
+    def denoise_batch(self, x, sigma, cond_embed, cross_attn):
+        """Batch 去噪 (batch=2 for CFG)"""
+        t = sigma.view(1)
+        t_emb = self.ts_embed(t)
         
-        return out
+        # 分别处理 batch 中的每个样本（因为编译时 batch=1）
+        results = []
+        for i in range(x.shape[0]):
+            global_cond = cond_embed[i:i+1] + t_emb
+            h = self.pre_conv(x[i:i+1])
+            h = h.transpose(1, 2)
+            h = self.proj_in(h)
+            
+            for layer in self.layers:
+                h = layer(h, cross_attn[i:i+1], global_cond)
+            
+            h = self.proj_out(h)
+            h = h.transpose(1, 2)
+            results.append(self.post_conv(h))
+        
+        return torch.cat(results)
     
     def sample_euler(self, shape, cond, steps=100, cfg_scale=7.0):
         """Euler 采样器"""
@@ -95,18 +111,13 @@ class StableAudioNeuron:
             sigma = sigmas[i]
             sigma_next = sigmas[i + 1]
             
-            # CFG: 条件 + 无条件
+            # CFG: batch 条件 + 无条件 一起跑
             x_in = torch.cat([x, x])
-            sigma_in = torch.cat([sigma.view(1), sigma.view(1)])
             cross_in = torch.cat([cross_attn, torch.zeros_like(cross_attn)])
-            cond_in = torch.cat([cond_embed, uncond_embed])
+            global_in = torch.cat([cond_embed, uncond_embed])
             
-            # 去噪
-            denoised = []
-            for j in range(2):
-                d = self.denoise(x_in[j:j+1], sigma_in[j:j+1], cond_in[j:j+1], cross_in[j:j+1])
-                denoised.append(d)
-            denoised = torch.cat(denoised)
+            # 单次 forward (batch=2)
+            denoised = self.denoise_batch(x_in, sigma, global_in, cross_in)
             
             # CFG 组合
             d_cond, d_uncond = denoised.chunk(2)
@@ -116,8 +127,8 @@ class StableAudioNeuron:
             dt = sigma_next - sigma
             x = x + d * dt
             
-            if (i + 1) % 10 == 0:
-                print(f"  Step {i+1}/{steps}, sigma={sigma:.3f}")
+            if (i + 1) % 20 == 0:
+                print(f"  Step {i+1}/{steps}")
         
         print(f"采样完成: {time.time()-start:.2f}s")
         return x
