@@ -9,8 +9,12 @@ import time
 import os
 from einops import rearrange
 
-# Neuron SDK
-import torch_neuronx
+# Neuron SDK (optional)
+try:
+    import torch_neuronx
+    NEURON_AVAILABLE = True
+except ImportError:
+    NEURON_AVAILABLE = False
 
 def get_memory_info():
     """获取内存使用情况"""
@@ -168,12 +172,9 @@ def main():
     
     # 检查 Neuron 设备
     print("检查 Neuron 设备...")
-    try:
-        import torch_neuronx
-        neuron_available = True
+    if NEURON_AVAILABLE:
         print(f"Neuron SDK 版本: {torch_neuronx.__version__}")
-    except ImportError:
-        neuron_available = False
+    else:
         print("Neuron SDK 不可用, 使用 CPU 模式")
     
     # 加载模型
@@ -190,7 +191,7 @@ def main():
     
     # 编译到 Neuron
     compiled_diffusion = None
-    if neuron_available and not args.no_compile:
+    if NEURON_AVAILABLE and not args.no_compile:
         compiled_diffusion = compile_model_for_neuron(model, model_config)
     
     if args.benchmark:
