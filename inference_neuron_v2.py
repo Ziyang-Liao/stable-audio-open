@@ -74,6 +74,10 @@ class StableAudioNeuron:
         
         # 条件嵌入 - prompt 是 (cross_attn, mask) tuple
         cross_attn = cond["prompt"][0]  # (1, 128, 768)
+        # pad to 512 (编译时的 shape)
+        if cross_attn.shape[1] < 512:
+            pad = torch.zeros(1, 512 - cross_attn.shape[1], 768)
+            cross_attn = torch.cat([cross_attn, pad], dim=1)
         
         # seconds_start 和 seconds_total 用于 global conditioning
         global_cond_input = torch.cat([
