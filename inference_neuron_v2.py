@@ -162,7 +162,10 @@ def main():
     
     print(f"\n生成: {args.prompt}")
     audio, sr, t = model.generate(args.prompt, steps=args.steps)
-    torchaudio.save(args.output, audio, sr)
+    
+    # 保存 wav
+    import scipy.io.wavfile as wav
+    wav.write(args.output, sr, audio.numpy().T)
     print(f"\n完成! 时间: {t:.2f}s ({t/30:.2f}x RTF)")
 
 if __name__ == "__main__":
