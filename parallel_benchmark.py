@@ -7,7 +7,7 @@ import torchaudio
 import time
 import os
 import argparse
-from multiprocessing import Process, Queue
+import torch.multiprocessing as mp
 from einops import rearrange
 
 def single_generate(model, model_config, prompt, duration, device):
@@ -41,9 +41,7 @@ def single_generate(model, model_config, prompt, duration, device):
     return output, sample_rate
 
 def worker_process(worker_id, prompt, duration, result_queue):
-    """独立进程 worker"""
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    
+    """独立进程 worker - 使用 spawn 模式"""
     import torch
     from stable_audio_tools import get_pretrained_model
     from stable_audio_tools.inference.generation import generate_diffusion_cond
@@ -92,6 +90,8 @@ def worker_process(worker_id, prompt, duration, result_queue):
 
 def test_parallel(num_workers, duration=30):
     """测试多进程并行"""
+    mp.set_start_method('spawn', force=True)
+    
     prompts = [
         "128 BPM tech house drum loop",
         "ambient soundscape with rain",
@@ -103,14 +103,14 @@ def test_parallel(num_workers, duration=30):
     print(f"并行测试: {num_workers} 个进程同时运行")
     print(f"{'='*60}")
     
-    result_queue = Queue()
+    result_queue = mp.Queue()
     processes = []
     
     start_time = time.time()
     
     # 启动所有进程
     for i in range(num_workers):
-        p = Process(target=worker_process, args=(i, prompts[i % len(prompts)], duration, result_queue))
+        p = mp.Process(target=worker_process, args=(i, prompts[i % len(prompts)], duration, result_queue))
         p.start()
         processes.append(p)
         print(f"  启动 Worker {i}")
