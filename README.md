@@ -57,6 +57,7 @@ python benchmark.py --benchmark --iterations 10
 |---------|-----|------|------|------|-------------|---------|-----|---------|
 | g6e.xlarge | NVIDIA L40S | 46GB | 4 | 32GB | 17.62s | 9.61GB | 0.59x | 基准 (1.0x) |
 | g5.2xlarge | NVIDIA A10G | 23GB | 8 | 32GB | 34.41s | 9.61GB | 1.15x | 0.51x |
+| g6.xlarge | NVIDIA L4 | 24GB | 4 | 16GB | 59.39s | 9.61GB | 1.98x | 0.30x |
 | g4dn.xlarge | Tesla T4 | 16GB | 4 | 16GB | ~130s (预估) | 9.61GB | ~4.3x | ~0.14x |
 
 > RTF (Real-Time Factor): 生成时间/音频时长，越小越快。0.59x 表示生成 30s 音频只需 17.6s。
