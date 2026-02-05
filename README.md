@@ -59,6 +59,22 @@ python benchmark.py --benchmark --iterations 10
 
 > RTF (Real-Time Factor): 生成时间/音频时长，越小越快。0.59x 表示生成 30s 音频只需 17.6s。
 
+## 并发测试结论
+
+| 并行进程数 | 总耗时 | 生成音频 | 吞吐量 |
+|-----------|--------|---------|--------|
+| 1 (顺序) | 17.6s | 30s | **1.70x 实时** |
+| 2 | 53.7s | 60s | 1.12x 实时 |
+| 3 | 74.1s | 90s | 1.21x 实时 |
+
+**结论：不适合跑并发**
+
+- 多进程并行时 GPU 资源互相竞争，每个进程都变慢
+- 单进程效率最高 (1.70x)，并发反而下降 30%+
+- 显存只用 9.6GB/46GB (21%)，但计算单元已饱和
+
+**最优方案：单进程顺序执行 + 请求队列**
+
 ## License
 
 本项目仅用于性能测试和研究目的。模型使用需遵循 [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-open-1.0/blob/main/LICENSE.md)。
