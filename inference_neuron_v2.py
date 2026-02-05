@@ -72,10 +72,17 @@ class StableAudioNeuron:
         # 初始噪声
         x = torch.randn(shape) * sigmas[0]
         
-        # 条件嵌入
-        cross_attn = cond["cross_attn"]
-        cond_embed = self.cond_embed(cond["global"][:, :768])
-        uncond_embed = self.cond_embed(torch.zeros_like(cond["global"][:, :768]))
+        # 条件嵌入 - prompt 是 (cross_attn, mask) tuple
+        cross_attn = cond["prompt"][0]  # (1, 128, 768)
+        
+        # seconds_start 和 seconds_total 用于 global conditioning
+        global_cond_input = torch.cat([
+            cond["seconds_start"][0],
+            cond["seconds_total"][0]
+        ], dim=-1) if "seconds_start" in cond else torch.zeros(1, 768)
+        
+        cond_embed = self.global_embed(global_cond_input)
+        uncond_embed = torch.zeros_like(cond_embed)
         
         print(f"采样 {steps} 步...")
         start = time.time()
