@@ -53,9 +53,11 @@ python benchmark.py --benchmark --iterations 10
 
 ## 硬件测试结果
 
-| GPU | 30s 音频生成时间 | 显存占用 |
-|-----|-----------------|---------|
-| NVIDIA L40S (46GB) | TBD | TBD |
+| GPU | 30s 音频生成时间 | 显存占用 | RTF |
+|-----|-----------------|---------|-----|
+| NVIDIA L40S (46GB) | 17.62s | 9.61GB | 0.59x |
+
+> RTF (Real-Time Factor): 生成时间/音频时长，越小越快。0.59x 表示生成 30s 音频只需 17.6s。
 
 ## License
 
