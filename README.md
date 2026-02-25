@@ -68,6 +68,38 @@ python benchmark.py --benchmark --iterations 10
 - 性能瓶颈：GPU 计算能力（Tensor Core FP16）
 - A10G 性能约为 L40S 的 51%，符合硬件算力差距（L40S FP16: 90.5 TFLOPS vs A10G: 31.2 TFLOPS）
 
+## BFloat16 优化测试 (demo.py)
+
+使用 `demo.py` 对 diffusion backbone 进行 bfloat16 精度优化后的测试结果。
+
+### 优化策略
+
+- TF32 matmul 加速
+- cuDNN benchmark 模式
+- Diffusion backbone 转为 bfloat16 精度
+- `torch.inference_mode()` 推理上下文
+
+### 测试结果
+
+| 项目 | 值 |
+|------|-----|
+| 实例类型 | g6e.xlarge |
+| GPU | NVIDIA L40S (46GB) |
+| 音频时长 | 30s |
+| Diffusion Steps | 100 |
+| Sampler | dpmpp-3m-sde |
+| CFG Scale | 7 |
+| **推理耗时** | **4.95s** |
+| RTF | **0.17x** |
+
+相比基准测试 (17.62s)，bfloat16 优化后推理速度提升约 **3.6 倍**。
+
+### 运行方式
+
+```bash
+python demo.py
+```
+
 ## 并发测试结论
 
 | 并行进程数 | 总耗时 | 生成音频 | 吞吐量 |
